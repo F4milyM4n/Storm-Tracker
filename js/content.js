@@ -39,7 +39,8 @@ const PSYCH_SYMPTOMS = [
   { id: 'low_motivation', label: 'Low motivation' },
   { id: 'overwhelm', label: 'Overwhelm' },
   { id: 'social_withdrawal', label: 'Social withdrawal' },
-  { id: 'libido_change', label: 'Libido change' }
+  { id: 'libido_low', label: 'Low libido' },
+  { id: 'libido_high', label: 'High libido' }
 ];
 
 const SEVERITY_LABELS = { 1: 'Mild', 2: 'Moderate', 3: 'Severe' };
@@ -103,7 +104,7 @@ const PHASE_TIPS = {
   ovulatory: {
     physiology:
       'A surge in luteinizing hormone (LH) triggers the release of an egg, roughly mid-cycle. Estrogen peaks just before ovulation and then drops sharply right after. Some people notice a one-sided pelvic twinge (\u201cmittelschmerz\u201d) around this point.',
-    commonSymptoms: ['libido_change'],
+    commonSymptoms: ['libido_high'],
     coping: [
       { text: 'A brief rise in basal body temperature after ovulation is well documented and is the basis of temperature-based fertility tracking.', evidence: 'research' },
       { text: 'If pelvic pain here is severe, one-sided, and worsening rather than brief, that pattern is worth a clinical check rather than assuming it\u2019s ovulation pain — the timing can look similar to other causes.', evidence: 'research' },

@@ -4,7 +4,7 @@
  * so the app opens instantly and works offline after the first visit.
  */
 
-const CACHE_NAME = 'cycle-tracker-v1';
+const CACHE_NAME = 'cycle-tracker-v2'; // bump this on every content/code update — see README "Updating the app" section
 const ASSETS = [
   './',
   './index.html',
