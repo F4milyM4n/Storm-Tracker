@@ -1,0 +1,714 @@
+/* ==========================================================================
+   Design tokens
+   Ink is a warm near-black (not pure black) so the 4 earthy phase colors —
+   rust / sage / gold / plum — read as the accent story, not a single neon
+   highlight. Display type is a serif for warmth on the cycle-day number and
+   phase name; UI type is a plain system sans for everything functional.
+   ========================================================================== */
+:root {
+  --ink: #1C1A1E;
+  --ink-raised: #262329;
+  --ink-raised-2: #2E2A32;
+  --bone: #EDE7DE;
+  --bone-dim: #A69F97;
+  --line: rgba(237, 231, 222, 0.12);
+
+  --rust: #B5502D;   /* menstrual */
+  --sage: #7C9473;   /* follicular */
+  --gold: #E0A72E;   /* ovulatory */
+  --plum: #8A6B7D;   /* luteal */
+
+  --rust-soft: rgba(181, 80, 45, 0.18);
+  --sage-soft: rgba(124, 148, 115, 0.18);
+  --gold-soft: rgba(224, 167, 46, 0.18);
+  --plum-soft: rgba(138, 107, 125, 0.20);
+
+  --font-display: ui-serif, Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+  --radius: 14px;
+  --tab-bar-h: 64px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--ink);
+  color: var(--bone);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  padding-bottom: calc(var(--tab-bar-h) + env(safe-area-inset-bottom, 0px));
+}
+
+.app {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 20px 20px 32px;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  color: var(--bone-dim);
+  margin: 0 0 4px;
+}
+
+h1 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1.3rem;
+  margin: 0;
+}
+
+.hint {
+  color: var(--bone-dim);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.muted-intro {
+  color: var(--bone-dim);
+  font-size: 0.88rem;
+  line-height: 1.55;
+  margin: 4px 0 20px;
+}
+
+/* ==========================================================================
+   View switching
+   ========================================================================== */
+.view[hidden] { display: none; }
+
+/* ==========================================================================
+   Today — the phase ring (signature element)
+   Four arcs sized by each phase's actual day-length (not decorative equal
+   quarters), with a marker dot at the current day's position.
+   ========================================================================== */
+.today-header { text-align: center; margin-bottom: 4px; }
+
+.ring-wrap {
+  position: relative;
+  width: 240px;
+  height: 240px;
+  margin: 8px auto 4px;
+}
+
+.phase-ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+
+.ring-track {
+  fill: none;
+  stroke: var(--ink-raised-2);
+  stroke-width: 14;
+}
+
+.ring-arc {
+  fill: none;
+  stroke-width: 14;
+  stroke-linecap: butt;
+  transition: stroke-dashoffset 0.4s ease;
+}
+
+.ring-marker {
+  fill: var(--bone);
+  stroke: var(--ink);
+  stroke-width: 3;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ring-marker { animation: pulse 2.4s ease-in-out infinite; }
+}
+@keyframes pulse {
+  0%, 100% { r: 7; opacity: 1; }
+  50% { r: 8.5; opacity: 0.75; }
+}
+
+.ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+}
+
+.ring-day {
+  font-family: var(--font-display);
+  font-size: 2.6rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.ring-phase {
+  margin-top: 6px;
+  font-size: 0.95rem;
+  color: var(--bone-dim);
+}
+
+.confidence-note {
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--bone-dim);
+  margin: 0 0 4px;
+}
+
+.late-note {
+  background: var(--rust-soft);
+  border: 1px solid var(--rust);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  margin: 10px 0;
+}
+
+/* ==========================================================================
+   Cards
+   ========================================================================== */
+.card {
+  background: var(--ink-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-top: 16px;
+}
+
+.tip-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--ink-raised-2);
+  border-radius: 10px;
+  padding: 3px;
+  margin-bottom: 14px;
+}
+
+.tip-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--bone-dim);
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  padding: 8px 4px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.tip-tab.active {
+  background: var(--ink-raised);
+  color: var(--bone);
+}
+
+.tip-panel {
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.tip-panel[hidden] { display: none; }
+
+.tip-panel h3 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1rem;
+  margin: 0 0 8px;
+}
+
+.coping-item {
+  margin: 0 0 12px;
+  padding-left: 14px;
+  border-left: 2px solid var(--line);
+}
+
+.coping-item .evidence-tag {
+  display: inline-block;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 20px;
+  margin-bottom: 4px;
+}
+
+.evidence-tag.research { background: var(--sage-soft); color: var(--sage); }
+.evidence-tag.anecdotal { background: var(--gold-soft); color: var(--gold); }
+
+.evidence-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; margin-bottom: 10px !important; }
+.evidence-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+}
+.evidence-dot.research { background: var(--sage); }
+.evidence-dot.anecdotal { background: var(--gold); }
+
+.chip.coping { position: relative; padding-left: 26px; }
+.chip.coping .evidence-dot {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-right: 0;
+}
+
+.tip-footnote {
+  font-size: 0.78rem;
+  color: var(--bone-dim);
+  margin: 14px 0 0;
+  line-height: 1.5;
+}
+
+.insight-teaser p:not(.eyebrow) { margin: 0; font-size: 0.9rem; line-height: 1.5; }
+
+.log-cta {
+  display: block;
+  width: 100%;
+  margin-top: 20px;
+  padding: 15px;
+  background: var(--bone);
+  color: var(--ink);
+  border: none;
+  border-radius: var(--radius);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 0.98rem;
+  cursor: pointer;
+}
+.log-cta:active { transform: scale(0.98); }
+
+/* ==========================================================================
+   Log view
+   ========================================================================== */
+.view-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.icon-btn {
+  background: var(--ink-raised);
+  border: 1px solid var(--line);
+  color: var(--bone);
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.field { display: block; margin-bottom: 16px; }
+.field-label { display: block; font-size: 0.82rem; color: var(--bone-dim); margin-bottom: 6px; }
+
+input[type="date"],
+input[type="text"],
+input[type="number"],
+textarea {
+  width: 100%;
+  background: var(--ink-raised);
+  border: 1px solid var(--line);
+  color: var(--bone);
+  border-radius: 10px;
+  padding: 11px 12px;
+  font-family: var(--font-ui);
+  font-size: 0.92rem;
+}
+
+textarea { resize: vertical; }
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--ink-raised);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  font-size: 0.92rem;
+}
+
+.toggle-row input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--rust); }
+
+.field-group {
+  border: none;
+  padding: 0;
+  margin: 22px 0 0;
+}
+
+.field-group legend {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  padding: 0 0 10px;
+}
+
+.chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.chip {
+  background: var(--ink-raised);
+  border: 1px solid var(--line);
+  color: var(--bone);
+  border-radius: 20px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-family: var(--font-ui);
+}
+
+.chip.selected {
+  background: var(--bone);
+  color: var(--ink);
+  border-color: var(--bone);
+}
+
+.symptom-list { display: flex; flex-direction: column; gap: 8px; }
+
+.symptom-row {
+  background: var(--ink-raised);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.symptom-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.symptom-name { font-size: 0.9rem; }
+
+.severity-picker {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.severity-picker button {
+  flex: 1;
+  background: var(--ink-raised-2);
+  border: 1px solid var(--line);
+  color: var(--bone-dim);
+  border-radius: 8px;
+  padding: 6px 0;
+  font-size: 0.76rem;
+  cursor: pointer;
+  font-family: var(--font-ui);
+}
+
+.severity-picker button.selected {
+  background: var(--rust);
+  border-color: var(--rust);
+  color: var(--bone);
+}
+
+.med-entry-row {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0;
+}
+.med-entry-row input { flex: 1; }
+
+.small-btn {
+  background: var(--ink-raised);
+  border: 1px solid var(--line);
+  color: var(--bone);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  display: inline-block;
+  margin: 4px 6px 4px 0;
+}
+
+.file-btn { position: relative; }
+
+.danger-btn { color: var(--rust); border-color: var(--rust); }
+
+.med-list { list-style: none; padding: 0; margin: 10px 0 0; }
+.med-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.88rem;
+}
+.med-list button {
+  background: none; border: none; color: var(--bone-dim); cursor: pointer; font-size: 0.85rem;
+}
+
+.import-status { font-size: 0.82rem; color: var(--sage); min-height: 1.2em; }
+
+/* ==========================================================================
+   Calendar
+   ========================================================================== */
+.cal-legend {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 0.78rem;
+  color: var(--bone-dim);
+  margin-bottom: 14px;
+}
+.cal-legend span { display: flex; align-items: center; gap: 5px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+.dot-menstrual { background: var(--rust); }
+.dot-follicular { background: var(--sage); }
+.dot-ovulatory { background: var(--gold); }
+.dot-luteal { background: var(--plum); }
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.cal-day {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  position: relative;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.cal-day.has-log::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--bone);
+}
+
+.cal-day.today { border-color: var(--bone); }
+.cal-day.empty { visibility: hidden; }
+
+.cal-day.phase-menstrual { background: var(--rust-soft); }
+.cal-day.phase-follicular { background: var(--sage-soft); }
+.cal-day.phase-ovulatory { background: var(--gold-soft); }
+.cal-day.phase-luteal { background: var(--plum-soft); }
+
+/* ==========================================================================
+   Insights
+   ========================================================================== */
+.insight-phase-card { margin-bottom: 14px; }
+.insight-phase-card h3 {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  margin: 0 0 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.insight-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.88rem;
+}
+.insight-row:last-child { border-bottom: none; }
+.insight-pct { color: var(--bone-dim); font-variant-numeric: tabular-nums; }
+.insight-empty { color: var(--bone-dim); font-size: 0.85rem; }
+
+/* ==========================================================================
+   Onboarding
+   ========================================================================== */
+.onboard-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 8px 0 28px;
+}
+.dot-step {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ink-raised-2);
+}
+.dot-step.active { background: var(--gold); }
+
+.onboard-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 500;
+  margin: 0 0 14px;
+  line-height: 1.3;
+}
+.onboard-copy {
+  color: var(--bone-dim);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  margin: 0 0 16px;
+}
+.onboard-skip-btn {
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin-top: 10px;
+}
+.onboard-past-section {
+  margin: 22px 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.past-period-list { list-style: none; padding: 0; margin: 10px 0; }
+.past-period-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--ink-raised-2);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  font-size: 0.85rem;
+}
+.past-period-list li button { background: none; border: none; color: var(--bone-dim); cursor: pointer; }
+
+.past-period-add {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0;
+}
+.past-period-add input[type="date"] { flex: 2; }
+.past-period-add input[type="number"] { flex: 1; min-width: 0; }
+
+/* ==========================================================================
+   Settings: symptom visibility toggles
+   ========================================================================== */
+.symptom-toggle-list { display: flex; flex-direction: column; gap: 6px; }
+.symptom-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.88rem;
+}
+.symptom-toggle-row:last-child { border-bottom: none; }
+.symptom-toggle-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--sage); }
+.custom-tag {
+  display: inline-block;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--bone-dim);
+  margin-left: 6px;
+}
+.symptom-toggle-row .remove-custom { background: none; border: none; color: var(--rust); cursor: pointer; font-size: 0.8rem; margin-left: 8px; }
+
+select {
+  background: var(--ink-raised);
+  border: 1px solid var(--line);
+  color: var(--bone);
+  border-radius: 10px;
+  padding: 11px 8px;
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+}
+
+/* ==========================================================================
+   Insights: 3-day outlook
+   ========================================================================== */
+.outlook-row {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+}
+.outlook-day {
+  flex: 0 0 auto;
+  width: 148px;
+  background: var(--ink-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+.outlook-day-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--bone-dim);
+  margin: 0 0 4px;
+}
+.outlook-phase-pill {
+  display: inline-block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  margin-bottom: 8px;
+}
+.outlook-symptom { font-size: 0.8rem; margin: 4px 0; line-height: 1.4; }
+.outlook-empty { font-size: 0.78rem; color: var(--bone-dim); line-height: 1.4; }
+.outlook-uncertain {
+  font-size: 0.7rem;
+  color: var(--gold);
+  margin-top: 8px;
+  line-height: 1.4;
+}
+.outlook-period-flag {
+  font-size: 0.72rem;
+  color: var(--rust);
+  margin-top: 6px;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Bottom tab bar
+   ========================================================================== */
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--tab-bar-h) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--ink-raised);
+  border-top: 1px solid var(--line);
+  display: flex;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.tab-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--bone-dim);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-family: var(--font-ui);
+  cursor: pointer;
+}
+
+.tab-btn.active { color: var(--bone); }
+.tab-icon { font-size: 1.1rem; }
+.tab-label { font-size: 0.68rem; }
+
+/* Keyboard focus visibility */
+button:focus-visible, input:focus-visible, textarea:focus-visible, .chip:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+@media (min-width: 500px) {
+  .tab-bar { left: 50%; transform: translateX(-50%); }
+}

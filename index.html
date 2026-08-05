@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1C1A1E">
+<title>Cycle — daily log</title>
+<meta name="description" content="Menstrual cycle tracker: phases, symptoms, mood, and medications, with tips based on where you are in your cycle.">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<main id="app" class="app" aria-live="polite">
+
+  <!-- ===== ONBOARDING ===== -->
+  <section id="view-onboarding" class="view" data-view="onboarding" hidden>
+    <div class="onboard-dots" id="onboard-dots">
+      <span class="dot-step active" data-step="welcome"></span>
+      <span class="dot-step" data-step="choice"></span>
+      <span class="dot-step" data-step="form"></span>
+      <span class="dot-step" data-step="customize"></span>
+      <span class="dot-step" data-step="summary"></span>
+    </div>
+
+    <div class="onboard-step" id="onboard-welcome">
+      <h1 class="onboard-title">Welcome</h1>
+      <p class="onboard-copy">This tracks your cycle phases, physical and psychological symptoms, mood, coping strategies, and medications — and calculates your phase timing from your own logged history rather than a generic 28-day guess.</p>
+      <p class="onboard-copy">If you know some of your recent cycle info, entering it now gets the phase ring and tips accurate right away instead of waiting for a few cycles to log naturally.</p>
+      <button class="log-cta" id="onboard-start-btn">Get started</button>
+    </div>
+
+    <div class="onboard-step" id="onboard-choice" hidden>
+      <h1 class="onboard-title">Do you know your typical cycle info?</h1>
+      <p class="onboard-copy">Things like when your last period started, and roughly how long your periods and cycles usually run.</p>
+      <button class="log-cta" id="onboard-know-btn">Yes, let me enter it</button>
+      <button class="small-btn onboard-skip-btn" id="onboard-skip-btn">Skip — I'll log as I go</button>
+    </div>
+
+    <div class="onboard-step" id="onboard-form" hidden>
+      <h1 class="onboard-title">Your typical cycle</h1>
+      <label class="field">
+        <span class="field-label">When did your last period start?</span>
+        <input type="date" id="onboard-last-start">
+      </label>
+      <label class="field">
+        <span class="field-label">Typical period length (days)</span>
+        <input type="number" id="onboard-period-length" min="1" max="14" value="5">
+      </label>
+      <label class="field">
+        <span class="field-label">Typical cycle length (days)</span>
+        <input type="number" id="onboard-cycle-length" min="15" max="60" value="28">
+      </label>
+      <p class="hint">These become your starting estimate — once you've logged a couple of real cycles, the math switches to your own data automatically.</p>
+
+      <div class="onboard-past-section">
+        <p class="field-label">Know any earlier period start dates? Adding them gets you an accurate estimate immediately instead of waiting.</p>
+        <ul class="past-period-list" id="onboard-past-list"></ul>
+        <div class="past-period-add" id="onboard-past-add" hidden>
+          <input type="date" id="onboard-past-date">
+          <input type="number" id="onboard-past-length" min="1" max="14" placeholder="Days" value="5">
+          <button class="small-btn" id="onboard-past-confirm-btn">Add</button>
+        </div>
+        <button class="small-btn" id="onboard-past-add-btn">+ Add an earlier period</button>
+      </div>
+
+      <button class="log-cta" id="onboard-form-continue-btn">Continue</button>
+    </div>
+
+    <div class="onboard-step" id="onboard-customize" hidden>
+      <h1 class="onboard-title">What do you want to track?</h1>
+      <p class="onboard-copy">Presets are ready to go — hide anything you don't need, or add your own. You can always change this later in Settings.</p>
+
+      <p class="field-label">Physical symptoms</p>
+      <div class="symptom-toggle-list" id="ob-physical-toggles"></div>
+      <p class="field-label" style="margin-top:14px">Psychological symptoms</p>
+      <div class="symptom-toggle-list" id="ob-psych-toggles"></div>
+      <div class="med-entry-row" style="margin-top:14px">
+        <input type="text" id="ob-new-symptom-name" placeholder="Custom symptom name">
+        <select id="ob-new-symptom-category">
+          <option value="physical">Physical</option>
+          <option value="psych">Psychological</option>
+        </select>
+        <button class="small-btn" id="ob-new-symptom-add-btn">Add</button>
+      </div>
+
+      <p class="field-label" style="margin-top:24px">Medications</p>
+      <p class="hint">Add any prescriptions now so they're ready as quick-tap chips from day one.</p>
+      <ul class="med-list" id="ob-med-list"></ul>
+      <div class="med-entry-row">
+        <input type="text" id="ob-new-med-name" placeholder="Medication name">
+        <input type="text" id="ob-new-med-dose" placeholder="Dose (optional)">
+        <button class="small-btn" id="ob-new-med-add-btn">Add</button>
+      </div>
+
+      <p class="field-label" style="margin-top:24px">Coping strategies</p>
+      <p class="hint">Research-backed and commonly-reported practices for cycle symptoms — remove any that don't fit, add your own.</p>
+      <ul class="med-list" id="ob-coping-list"></ul>
+      <div class="med-entry-row">
+        <input type="text" id="ob-new-coping-name" placeholder="Custom coping strategy">
+        <button class="small-btn" id="ob-new-coping-add-btn">Add</button>
+      </div>
+
+      <button class="log-cta" id="onboard-customize-continue-btn" style="margin-top:20px">Continue</button>
+      <button class="small-btn onboard-skip-btn" id="onboard-customize-back-btn">Back</button>
+    </div>
+
+    <div class="onboard-step" id="onboard-summary" hidden>
+      <h1 class="onboard-title">Ready to go</h1>
+      <p class="onboard-copy" id="onboard-summary-text"></p>
+      <button class="log-cta" id="onboard-finish-btn">Finish setup</button>
+      <button class="small-btn onboard-skip-btn" id="onboard-back-btn">Back</button>
+    </div>
+  </section>
+
+  <!-- ===== TODAY ===== -->
+  <section id="view-today" class="view" data-view="today">
+    <header class="today-header">
+      <p class="eyebrow" id="today-date"></p>
+    </header>
+
+    <div class="ring-wrap">
+      <svg id="phase-ring" viewBox="0 0 240 240" class="phase-ring" role="img" aria-labelledby="ring-title">
+        <title id="ring-title">Cycle phase ring</title>
+        <circle class="ring-track" cx="120" cy="120" r="100" />
+        <g id="ring-arcs"></g>
+        <circle id="ring-marker" class="ring-marker" cx="120" cy="20" r="7" />
+      </svg>
+      <div class="ring-center">
+        <span class="ring-day" id="ring-day">—</span>
+        <span class="ring-phase" id="ring-phase">Loading</span>
+      </div>
+    </div>
+
+    <p class="confidence-note" id="confidence-note"></p>
+    <p class="late-note" id="late-note" hidden></p>
+
+    <section class="card tip-card" id="tip-card">
+      <div class="tip-tabs" role="tablist" aria-label="Tip category">
+        <button class="tip-tab active" data-tab="body" role="tab" aria-selected="true">What's happening</button>
+        <button class="tip-tab" data-tab="coping" role="tab" aria-selected="false">Coping strategies</button>
+      </div>
+      <div class="tip-panel" id="tip-body"></div>
+      <div class="tip-panel" id="tip-coping" hidden></div>
+      <p class="tip-footnote" id="tip-footnote"></p>
+    </section>
+
+    <section class="card insight-teaser" id="insight-teaser" hidden>
+      <p class="eyebrow">Your pattern</p>
+      <p id="insight-teaser-text"></p>
+    </section>
+
+    <button class="log-cta" id="open-log-btn">Log today</button>
+  </section>
+
+  <!-- ===== LOG ===== -->
+  <section id="view-log" class="view" data-view="log" hidden>
+    <header class="view-header">
+      <button class="icon-btn" id="log-back-btn" aria-label="Back">←</button>
+      <h1>Log entry</h1>
+      <div style="width:2rem"></div>
+    </header>
+
+    <label class="field">
+      <span class="field-label">Date</span>
+      <input type="date" id="log-date">
+    </label>
+
+    <label class="toggle-row">
+      <span>Day 1 of period</span>
+      <input type="checkbox" id="log-period-start">
+    </label>
+    <label class="toggle-row">
+      <span>Bleeding today</span>
+      <input type="checkbox" id="log-period-day">
+    </label>
+
+    <fieldset class="field-group">
+      <legend>Mood</legend>
+      <div class="chip-row" id="mood-chips"></div>
+    </fieldset>
+
+    <fieldset class="field-group">
+      <legend>Physical symptoms</legend>
+      <div class="symptom-list" id="physical-symptom-list"></div>
+    </fieldset>
+
+    <fieldset class="field-group">
+      <legend>Psychological symptoms</legend>
+      <div class="symptom-list" id="psych-symptom-list"></div>
+    </fieldset>
+
+    <fieldset class="field-group">
+      <legend>Coping strategies taken</legend>
+      <p class="hint evidence-legend"><span class="evidence-dot research"></span> research-backed for cycle symptoms &nbsp; <span class="evidence-dot anecdotal"></span> commonly reported, evidence thinner</p>
+      <div class="chip-row" id="coping-chips"></div>
+    </fieldset>
+
+    <fieldset class="field-group">
+      <legend>Medications</legend>
+      <div class="chip-row" id="med-chips"></div>
+      <div class="med-entry-row">
+        <input type="text" id="med-custom-name" placeholder="Medication name">
+        <input type="text" id="med-custom-dose" placeholder="Dose (optional)">
+        <button class="small-btn" id="med-add-btn">Add</button>
+      </div>
+      <ul class="med-list" id="med-list"></ul>
+    </fieldset>
+
+    <label class="field">
+      <span class="field-label">Notes</span>
+      <textarea id="log-notes" rows="3" placeholder="Anything else worth remembering"></textarea>
+    </label>
+
+    <button class="log-cta" id="save-log-btn">Save entry</button>
+  </section>
+
+  <!-- ===== CALENDAR ===== -->
+  <section id="view-calendar" class="view" data-view="calendar" hidden>
+    <header class="view-header">
+      <button class="icon-btn" id="cal-prev-btn" aria-label="Previous month">←</button>
+      <h1 id="cal-month-label">Month</h1>
+      <button class="icon-btn" id="cal-next-btn" aria-label="Next month">→</button>
+    </header>
+    <div class="cal-legend">
+      <span><i class="dot dot-menstrual"></i>Menstrual</span>
+      <span><i class="dot dot-follicular"></i>Follicular</span>
+      <span><i class="dot dot-ovulatory"></i>Ovulatory</span>
+      <span><i class="dot dot-luteal"></i>Luteal</span>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+  </section>
+
+  <!-- ===== INSIGHTS ===== -->
+  <section id="view-insights" class="view" data-view="insights" hidden>
+    <header class="view-header">
+      <h1>Insights</h1>
+    </header>
+    <div id="outlook-section">
+      <p class="eyebrow">3-day outlook</p>
+      <p class="muted-intro" style="margin-top:0">Where your cycle is projected to be over the next 3 days, matched against what you've historically logged in that phase.</p>
+      <div id="outlook-content"></div>
+    </div>
+
+    <p class="eyebrow" style="margin-top:24px">By phase</p>
+    <p class="muted-intro" style="margin-top:0">Frequency of what you've logged, grouped by phase. A pattern only appears once there's enough of your own history to say something real — no guessing ahead of the data.</p>
+    <div id="insights-content"></div>
+  </section>
+
+  <!-- ===== SETTINGS ===== -->
+  <section id="view-settings" class="view" data-view="settings" hidden>
+    <header class="view-header">
+      <h1>Settings</h1>
+    </header>
+
+    <fieldset class="field-group">
+      <legend>Setup</legend>
+      <p class="hint">Re-run the initial setup to re-enter your typical cycle info (this won't delete anything you've already logged).</p>
+      <button class="small-btn" id="replay-onboard-btn">Replay setup</button>
+    </fieldset>
+
+    <fieldset class="field-group">
+      <legend>Historical data</legend>
+      <p class="hint">Log a past period without tapping through the calendar day by day.</p>
+      <div class="past-period-add">
+        <input type="date" id="hist-date">
+        <input type="number" id="hist-length" min="1" max="14" placeholder="Days" value="5">
+        <button class="small-btn" id="hist-add-btn">Add period</button>
+      </div>
+      <p class="import-status" id="hist-status"></p>
+    </fieldset>
+
+    <fieldset class="field-group">
+      <legend>Symptoms</legend>
+      <p class="hint">Hide symptoms you never experience, or add your own. Hiding only affects the log form — anything already logged stays in your Insights.</p>
+      <p class="field-label" style="margin-top:14px">Physical</p>
+      <div class="symptom-toggle-list" id="set-physical-toggles"></div>
+      <p class="field-label" style="margin-top:14px">Psychological</p>
+      <div class="symptom-toggle-list" id="set-psych-toggles"></div>
+      <div class="med-entry-row" style="margin-top:14px">
+        <input type="text" id="new-symptom-name" placeholder="Custom symptom name">
+        <select id="new-symptom-category">
+          <option value="physical">Physical</option>
+          <option value="psych">Psychological</option>
+        </select>
+        <button class="small-btn" id="new-symptom-add-btn">Add</button>
+      </div>
+    </fieldset>
+
+    <fieldset class="field-group">
+      <legend>Medications</legend>
+      <p class="hint">Medications listed here show up as quick-tap chips in the daily log — add a prescription once and it stays available every day.</p>
+      <ul class="med-list" id="set-med-list"></ul>
+      <div class="med-entry-row">
+        <input type="text" id="new-med-name" placeholder="Medication name">
+        <input type="text" id="new-med-dose" placeholder="Dose (optional)">
+        <button class="small-btn" id="new-med-add-btn">Add</button>
+      </div>
+    </fieldset>
+
+    <fieldset class="field-group">
+      <legend>Coping strategies</legend>
+      <p class="hint">These show up as quick-tap chips in the daily log's "Coping strategies taken" section. Presets are seeded from research and commonly-reported practices for cycle symptoms — remove any that don't fit, or add your own.</p>
+      <ul class="med-list" id="set-coping-list"></ul>
+      <div class="med-entry-row">
+        <input type="text" id="new-coping-name" placeholder="Custom coping strategy">
+        <button class="small-btn" id="new-coping-add-btn">Add</button>
+      </div>
+    </fieldset>
+
+    <fieldset class="field-group">
+      <legend>Cycle calculation</legend>
+      <label class="field">
+        <span class="field-label">Assumed luteal phase length (days)</span>
+        <input type="number" id="set-luteal" min="10" max="17">
+      </label>
+      <label class="field">
+        <span class="field-label">Cycles used for the adaptive average</span>
+        <input type="number" id="set-lookback" min="3" max="6">
+      </label>
+      <p class="hint">Your phase ring recalculates from your own logged period-start dates using the median of your recent cycles. These settings only matter until you've logged a few — after that the math adapts on its own.</p>
+    </fieldset>
+
+    <fieldset class="field-group">
+      <legend>Backup</legend>
+      <p class="hint">Everything is stored only on this device. Export a backup before clearing browser data or switching devices.</p>
+      <button class="small-btn" id="export-btn">Export backup (JSON)</button>
+      <label class="small-btn file-btn">
+        Import backup
+        <input type="file" id="import-input" accept="application/json" hidden>
+      </label>
+      <p class="import-status" id="import-status"></p>
+    </fieldset>
+
+    <fieldset class="field-group">
+      <legend>Danger zone</legend>
+      <button class="small-btn danger-btn" id="clear-btn">Clear all data</button>
+    </fieldset>
+  </section>
+
+</main>
+
+<nav class="tab-bar" aria-label="Main navigation">
+  <button class="tab-btn active" data-view="today" aria-label="Today">
+    <span class="tab-icon">●</span><span class="tab-label">Today</span>
+  </button>
+  <button class="tab-btn" data-view="calendar" aria-label="Calendar">
+    <span class="tab-icon">▦</span><span class="tab-label">Calendar</span>
+  </button>
+  <button class="tab-btn" data-view="insights" aria-label="Insights">
+    <span class="tab-icon">◐</span><span class="tab-label">Insights</span>
+  </button>
+  <button class="tab-btn" data-view="settings" aria-label="Settings">
+    <span class="tab-icon">⚙</span><span class="tab-label">Settings</span>
+  </button>
+</nav>
+
+<script src="js/cycle-math.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/content.js"></script>
+<script src="js/insights.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
