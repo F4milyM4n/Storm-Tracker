@@ -200,6 +200,88 @@ function boundaryDistance(day, phaseKey, phases) {
   return Math.min(day - range.start, range.end - day);
 }
 
+/**
+ * FORECASTING MULTIPLE CYCLES AHEAD — the math behind the Calendar's
+ * forward-looking phase coloring.
+ *
+ * Projecting 1 cycle ahead carries roughly `cycleVariability` days of
+ * uncertainty (the stdDev already computed from the user's own recent
+ * cycles). Projecting k cycles ahead means summing k cycle lengths, each an
+ * independent-ish draw with that same stdDev — for a sum of k i.i.d. random
+ * variables, stdDev(sum) = stdDev(single) * sqrt(k). That's standard error
+ * propagation, not a guess, and it's why uncertainty grows with the SQUARE
+ * ROOT of distance rather than linearly: forecasting stays meaningfully
+ * useful much further out for a regular cycle than a naive "just multiply
+ * the error" model would suggest.
+ *
+ * A day-level phase call stops being trustworthy once that uncertainty band
+ * approaches the width of the narrowest phase (ovulatory is typically the
+ * shortest, ~3 days on a 28-day cycle). 20% of the average cycle length is
+ * used here as a checkable proxy for "the uncertainty is now comparable to
+ * an entire phase" — not an arbitrary decoration, a threshold that can be
+ * verified against the phase widths estimatePhases() actually produced.
+ */
+const FORECAST_RELIABILITY_FRACTION = 0.2;
+
+/** Uncertainty (in days) of a projection landing `cyclesAhead` full cycles from today. */
+function cycleSigma(cycleVariability, cyclesAhead) {
+  if (cycleVariability === null || cycleVariability === undefined) return null;
+  return cycleVariability * Math.sqrt(cyclesAhead + 1);
+}
+
+/** How many full cycles separate today's day-of-cycle from a day `offsetDays` in the future. */
+function cyclesAheadFor(dayOfCycleToday, offsetDays, avgCycleLength) {
+  return Math.floor((dayOfCycleToday - 1 + offsetDays) / avgCycleLength);
+}
+
+/**
+ * 0 = fully confident, 1 = at/beyond the point where a day-level phase call
+ * is no longer meaningfully trustworthy. Null when there's not yet enough
+ * logged history to estimate variability at all (fewer than 2 cycle gaps).
+ */
+function forecastReliabilityRatio(stats, cyclesAhead) {
+  if (stats.cycleVariability === null) return null;
+  if (stats.cycleVariability === 0) return 0;
+  const sigma = cycleSigma(stats.cycleVariability, cyclesAhead);
+  const threshold = FORECAST_RELIABILITY_FRACTION * stats.avgCycleLength;
+  return Math.min(1, sigma / threshold);
+}
+
+/**
+ * How many full cycles ahead the forecast stays within the reliability
+ * threshold, given the user's own logged variability. Null if unknown yet
+ * (not enough cycles logged to estimate variability — the forecast still
+ * renders, just uniformly flagged low-confidence rather than gradient-faded,
+ * since there's no real basis for a gradient without a variability estimate).
+ */
+function maxReliableForecastCycles(stats) {
+  if (stats.cycleVariability === null) return null;
+  if (stats.cycleVariability === 0) return Infinity;
+  const threshold = FORECAST_RELIABILITY_FRACTION * stats.avgCycleLength;
+  const kPlus1 = Math.pow(threshold / stats.cycleVariability, 2);
+  return Math.max(0, Math.floor(kPlus1 - 1));
+}
+
+/**
+ * Full forecast for an arbitrary future date: which phase, how many cycles
+ * out, and how reliable that call is. Deliberately separate from
+ * getCurrentPhase/phaseForDate — those use real logged period starts and
+ * are for dates we actually have ground truth for (today and the past).
+ * This one always wraps forward via projectDayOfCycle rather than flagging
+ * "late," because a forecast several months out shouldn't freeze on
+ * whatever "late" meant on the day it was computed.
+ */
+function forecastPhaseForDate(targetDate, today, ctx) {
+  if (!ctx.dayOfCycle) return null;
+  const offsetDays = daysBetween(today, targetDate);
+  const projectedDay = projectDayOfCycle(ctx.dayOfCycle, offsetDays, ctx.stats.avgCycleLength);
+  const phase = classifyPhaseForDay(projectedDay, ctx.phases);
+  const cyclesAhead = cyclesAheadFor(ctx.dayOfCycle, offsetDays, ctx.stats.avgCycleLength);
+  const reliability = forecastReliabilityRatio(ctx.stats, cyclesAhead);
+  const periodStartDay = phase === 'menstrual' && projectedDay === ctx.phases.menstrual.start;
+  return { phase, projectedDay, cyclesAhead, reliability, periodStartDay };
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     daysBetween,
@@ -213,6 +295,12 @@ if (typeof module !== 'undefined' && module.exports) {
     dayOfCycleFor,
     projectDayOfCycle,
     classifyPhaseForDay,
-    boundaryDistance
+    boundaryDistance,
+    FORECAST_RELIABILITY_FRACTION,
+    cycleSigma,
+    cyclesAheadFor,
+    forecastReliabilityRatio,
+    maxReliableForecastCycles,
+    forecastPhaseForDate
   };
 }

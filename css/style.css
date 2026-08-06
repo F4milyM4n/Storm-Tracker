@@ -462,6 +462,13 @@ textarea { resize: vertical; }
 .dot-follicular { background: var(--sage); }
 .dot-ovulatory { background: var(--gold); }
 .dot-luteal { background: var(--plum); }
+.ring-marker-legend {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid var(--rust);
+  display: inline-block;
+}
 
 .cal-grid {
   display: grid;
@@ -491,6 +498,18 @@ textarea { resize: vertical; }
   background: var(--bone);
 }
 
+.cal-day.forecast-period-start::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  border: 1.5px solid var(--rust);
+  background: transparent;
+}
+
 .cal-day.today { border-color: var(--bone); }
 .cal-day.empty { visibility: hidden; }
 
@@ -498,6 +517,9 @@ textarea { resize: vertical; }
 .cal-day.phase-follicular { background: var(--sage-soft); }
 .cal-day.phase-ovulatory { background: var(--gold-soft); }
 .cal-day.phase-luteal { background: var(--plum-soft); }
+
+.cal-fade-note { margin: 0 0 12px; }
+.cal-forecast-note { margin: 14px 0 0; }
 
 /* ==========================================================================
    Insights

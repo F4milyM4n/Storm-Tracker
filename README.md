@@ -38,6 +38,12 @@ always local anyway).
   anytime from Settings.
 - **Cycle phases** — Menstrual, Follicular, Ovulatory, Luteal, shown as a
   ring sized by your *actual* phase lengths, not a generic quarter-split.
+- **Calendar with forecast** — past and current-cycle days use your real
+  logged period starts (ground truth). Future days show a *forecast*
+  instead: projected phase colors that fade the further out you go, based
+  on your own cycle variability, plus a small ring marker on each day a
+  period is projected to start. See "How the forecast works" below for the
+  math behind the fade.
 - **Physical symptoms** and **psychological symptoms**, each with a
   Mild/Moderate/Severe severity tap. Hide any you never experience, or add
   your own custom symptoms — from onboarding or Settings.
@@ -102,6 +108,48 @@ recalculates from your own logged period-start dates:
   consumer cycle-tracking apps make, for a legible display — and says so in
   the Luteal-phase tip card rather than leaving it implied.
 
+### The Calendar forecast (multi-month)
+
+Scrolling the Calendar forward always shows *something* — at minimum the
+next 3 months — but the confidence behind that color is honestly
+represented rather than painted uniformly:
+
+1. **Wraparound projection.** Future days use the same `projectDayOfCycle`
+   wraparound math as the 3-day outlook, just extended arbitrarily far
+   forward — a date 4 cycles out correctly lands in a *projected 4th*
+   cycle's phases, not stuck showing "late" forever the way a live-status
+   check would.
+2. **Compounding uncertainty, not a flat guess.** Projecting 1 cycle ahead
+   carries about `cycleVariability` days of uncertainty (your own logged
+   stdDev). Projecting *k* cycles ahead means summing k cycle lengths, and
+   for a sum of independent-ish values, stdDev(sum) = stdDev(single) ×
+   √k — standard error propagation. That's why the fade isn't linear: a
+   very regular cycle (±1 day) stays meaningfully forecastable for a long
+   time, while an irregular one (±5+ days) degrades within a cycle or two —
+   computed from *your* data, not a fixed calendar cutoff.
+3. **A checkable reliability threshold.** A day-level phase call stops
+   being trustworthy once that uncertainty band approaches the width of
+   the narrowest phase (ovulatory, typically the shortest). 20% of the
+   average cycle length is used as a proxy for "uncertainty is now
+   comparable to an entire phase" — verifiable against the phase widths
+   `estimatePhases()` actually produced, not an arbitrary decoration.
+4. **The fade is the confidence, not just decoration.** Each day's color
+   opacity is computed directly from its reliability ratio (0 = as
+   confident as the near-term forecast gets, 1 = at/beyond the threshold)
+   — so a quick glance at how saturated a month looks tells you how much
+   to trust it, and the app also states this in words below the grid
+   ("...should stay meaningfully accurate through about \<date\>").
+5. **Never fabricated.** With fewer than 2 logged cycle gaps there's no
+   variability estimate to compound, so the forecast renders at a flat
+   reduced-confidence shade throughout rather than a fake gradient — and
+   with zero periods logged, there's no forecast at all.
+
+This all lives in `js/cycle-math.js` (`cycleSigma`, `cyclesAheadFor`,
+`forecastReliabilityRatio`, `maxReliableForecastCycles`,
+`forecastPhaseForDate`) and is tested in `test/forecast.test.js`, including
+a check that the reported "reliable through" horizon is self-consistent
+with the underlying per-day reliability math rather than just eyeballed.
+
 ### The 3-day outlook
 
 The outlook combines two separate calculations rather than guessing:
@@ -125,7 +173,8 @@ period logged yet, the outlook says so rather than fabricating one.
 All of this logic lives in `js/cycle-math.js`, is framework-free, and has a
 test suite in `test/` covering the math with `node test/cycle-math.test.js`,
 `test/storage.test.js`, `test/storage2.test.js`, `test/storage3.test.js`,
-`test/insights.test.js`, `test/outlook.test.js`, and `test/integration.test.js`.
+`test/insights.test.js`, `test/outlook.test.js`, `test/forecast.test.js`,
+and `test/integration.test.js`.
 
 ## On the coping-strategy content
 

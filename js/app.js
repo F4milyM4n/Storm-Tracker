@@ -457,7 +457,8 @@
     const firstOfMonth = new Date(year, month, 1);
     const startWeekday = firstOfMonth.getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const todayISO = storage_toISO(new Date());
+    const todayDate = new Date();
+    const todayISO = storage_toISO(todayDate);
 
     for (let i = 0; i < startWeekday; i++) {
       const filler = document.createElement('div');
@@ -468,17 +469,63 @@
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, month, day);
       const iso = storage_toISO(date);
-      const phase = phaseForDate(date, ctx);
+      const isFuture = iso > todayISO;
 
       const cell = document.createElement('div');
       cell.className = 'cal-day';
-      if (phase) cell.classList.add(`phase-${phase}`);
+
+      if (isFuture) {
+        // Forecast territory: no ground truth yet, so use the wraparound
+        // projection (not phaseForDate/getCurrentPhase, which are for dates
+        // we actually have logged data up through) and fade by confidence.
+        const f = forecastPhaseForDate(date, todayDate, ctx);
+        if (f) {
+          cell.classList.add('forecast', `phase-${f.phase}`);
+          const BASE_PCT = 18, FLOOR_PCT = 6;
+          // Unknown variability (fewer than 2 logged cycles) -> no basis for a
+          // gradient, so use a flat mid-fade instead of implying precision.
+          const reliability = f.reliability === null ? 0.65 : f.reliability;
+          const pct = Math.round(BASE_PCT - (BASE_PCT - FLOOR_PCT) * reliability);
+          cell.style.background = `color-mix(in srgb, var(${PHASE_META[f.phase].color}) ${pct}%, transparent)`;
+          if (f.periodStartDay) cell.classList.add('forecast-period-start');
+        }
+      } else {
+        const phase = phaseForDate(date, ctx);
+        if (phase) cell.classList.add(`phase-${phase}`);
+      }
+
       if (iso === todayISO) cell.classList.add('today');
       if (state.entries[iso]) cell.classList.add('has-log');
       cell.textContent = String(day);
       cell.addEventListener('click', () => openLog(iso));
       grid.appendChild(cell);
     }
+
+    renderForecastNote(ctx, todayDate);
+  }
+
+  function renderForecastNote(ctx, todayDate) {
+    const el = document.getElementById('cal-forecast-note');
+    if (!ctx.dayOfCycle) {
+      el.textContent = 'Log your first period to unlock a forecast for future months.';
+      return;
+    }
+    if (ctx.stats.cycleVariability === null) {
+      el.textContent = 'Forecast is a rough projection for now — log a second full cycle to get a personalized reliability estimate instead of a flat estimate.';
+      return;
+    }
+    const k = maxReliableForecastCycles(ctx.stats);
+    if (k === 0) {
+      el.textContent = `Your cycle varies by \u00b1${ctx.stats.cycleVariability}d, enough that day-level forecasts fade fast beyond the current cycle — treat far-out color as a rough reference, not a firm prediction.`;
+      return;
+    }
+    const cappedK = Math.min(k, 12); // cap the displayed claim around a year even if the math implies further
+    const days = (cappedK + 1) * ctx.stats.avgCycleLength;
+    const throughDate = new Date(todayDate.getTime() + days * MS_PER_DAY);
+    const sameYear = throughDate.getFullYear() === todayDate.getFullYear();
+    const dateStr = throughDate.toLocaleDateString(undefined, sameYear ? { month: 'long', day: 'numeric' } : { month: 'long', day: 'numeric', year: 'numeric' });
+    const suffix = k > 12 ? '+' : '';
+    el.textContent = `Based on your \u00b1${ctx.stats.cycleVariability}d variability, this forecast should stay meaningfully accurate through about ${dateStr}${suffix} — color fades further out as confidence drops.`;
   }
 
   document.getElementById('cal-prev-btn').addEventListener('click', () => {
